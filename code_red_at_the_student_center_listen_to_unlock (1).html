@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Code Red at the Student Center: Listen to Unlock</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+      background-color: #070b14;
+      background-image:
+        radial-gradient(circle at 15% 12%, rgba(239, 68, 68, 0.16), transparent 42%),
+        radial-gradient(circle at 85% 88%, rgba(14, 165, 233, 0.12), transparent 45%),
+        linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 26px 26px, 26px 26px;
+      color: #f1f5f9;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body.unlocked-theme {
+      background-image:
+        radial-gradient(circle at 15% 12%, rgba(16, 185, 129, 0.18), transparent 44%),
+        radial-gradient(circle at 85% 88%, rgba(14, 165, 233, 0.12), transparent 45%),
+        linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    .glass-terminal {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 22px 44px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .alert-glow {
+      animation: redPulse 2.4s infinite;
+    }
+
+    @keyframes redPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+      50% { box-shadow: 0 0 22px 2px rgba(239, 68, 68, 0.55); }
+    }
+
+    .wave-bar {
+      width: 4px;
+      height: 8px;
+      border-radius: 9999px;
+      background: #ef4444;
+      transition: height 0.12s ease;
+    }
+
+    .playing .wave-bar {
+      animation: eqWave 0.6s infinite ease-in-out alternate;
+    }
+
+    .playing .wave-bar:nth-child(2) { animation-delay: 0.12s; }
+    .playing .wave-bar:nth-child(3) { animation-delay: 0.24s; }
+    .playing .wave-bar:nth-child(4) { animation-delay: 0.36s; }
+    .playing .wave-bar:nth-child(5) { animation-delay: 0.18s; }
+    .playing .wave-bar:nth-child(6) { animation-delay: 0.30s; }
+
+    @keyframes eqWave {
+      0% { height: 6px; background: #f87171; }
+      100% { height: 28px; background: #38bdf8; }
+    }
+
+    .mic-active {
+      animation: micPulse 1.25s infinite;
+    }
+
+    @keyframes micPulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .btn-tap:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body class="flex flex-col justify-between selection:bg-red-500 selection:text-white">
+
+  <!-- Persistent Top 3-Digit Security Lock HUD -->
+  <header class="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-red-900/40 px-4 py-3">
+    <div class="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <span id="hud-dot" class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+        <div>
+          <div id="hud-status" class="text-xs sm:text-sm font-black tracking-wider text-red-400 uppercase">
+            CODE RED: STUDENT CENTER LOCKDOWN
+          </div>
+          <p class="text-[11px] text-slate-400 mono">LISTEN TO UNLOCK // 3-STAGE AUDIO TERMINAL</p>
+        </div>
+      </div>
+
+      <!-- 3-Digit Vault PIN Display -->
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700/90 px-3 py-1.5 rounded-xl mono text-xs">
+          <span class="text-slate-400 font-semibold">PIN:</span>
+          <span id="digit-1" class="w-6 h-7 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-700 text-slate-500 font-extrabold">?</span>
+          <span id="digit-2" class="w-6 h-7 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-700 text-slate-500 font-extrabold">?</span>
+          <span id="digit-3" class="w-6 h-7 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-700 text-slate-500 font-extrabold">?</span>
+        </div>
+
+        <button type="button" id="sfx-toggle" onclick="toggleSfx()" class="btn-tap px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 transition" title="Toggle Sound Effects">
+          🔊
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Interactive Viewport -->
+  <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-6 flex flex-col justify-center">
+
+    <!-- SCREEN 0: MISSION BRIEFING / INTRO -->
+    <section id="screen-intro" class="glass-terminal alert-glow rounded-3xl p-6 sm:p-8 space-y-6 animate-in">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/90 border border-red-500/50 text-red-300 text-xs font-bold mono">
+        <span>⚠️ EMERGENCY LOCKDOWN PROTOCOL</span>
+      </div>
+
+      <div class="space-y-2">
+        <h1 class="text-2xl sm:text-4xl font-black text-white leading-tight">
+          Code Red at the Student Center:<br>
+          <span class="text-red-400">Listen to Unlock</span>
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          社團博覽會前夕，學生活動中心誤觸紅色警戒封鎖！請監聽社團幹部的三段緊急英語通話（每段約 <strong>35–45 秒</strong>），破解三大真實聽力陷阱並集齊 <strong>3 位數解除密碼</strong>：
+        </p>
+      </div>
+
+      <!-- 3-Stage Roadmap -->
+      <div class="grid sm:grid-cols-3 gap-3 text-xs">
+        <div class="bg-slate-950/85 border border-slate-800 p-4 rounded-2xl space-y-1">
+          <div class="text-red-400 font-bold mono">STAGE 01 // GIST</div>
+          <div class="font-bold text-white text-sm">主旨盲聽挑戰</div>
+          <p class="text-slate-400 leading-relaxed">不看逐字稿抓核心大意，克服過度執著單字的盲點。</p>
+        </div>
+        <div class="bg-slate-950/85 border border-slate-800 p-4 rounded-2xl space-y-1">
+          <div class="text-amber-400 font-bold mono">STAGE 02 // SHIFTS</div>
+          <div class="font-bold text-white text-sm">連音轉折與跟讀</div>
+          <p class="text-slate-400 leading-relaxed">聽出快語速連音中的決策修改，並進行 0.85x 慢速跟讀。</p>
+        </div>
+        <div class="bg-slate-950/85 border border-slate-800 p-4 rounded-2xl space-y-1">
+          <div class="text-cyan-400 font-bold mono">STAGE 03 // TONE</div>
+          <div class="font-bold text-white text-sm">語氣推論與協商</div>
+          <p class="text-slate-400 leading-relaxed">聽出委婉猶豫背後的真實態度，開口提出省錢替代方案。</p>
+        </div>
+      </div>
+
+      <button type="button" onclick="startStage(1)" class="btn-tap w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-500 hover:from-red-500 hover:to-rose-500 text-white font-black text-base tracking-wide shadow-xl shadow-red-950/70 transition flex items-center justify-center gap-2">
+        <span>🚨 啟動第一關監聽終端機 (START STAGE 1)</span>
+      </button>
+    </section>
+
+    <!-- SCREEN 1: ACTIVE STAGE WORKSPACE -->
+    <section id="screen-stage" class="hidden space-y-5 animate-in">
+
+      <!-- Stage Stepper Tabs -->
+      <div class="grid grid-cols-3 gap-2">
+        <button type="button" id="tab-1" onclick="jumpToStage(1)" class="btn-tap py-2.5 px-2 rounded-xl text-xs font-bold border transition text-center">
+          1. 主旨盲聽
+        </button>
+        <button type="button" id="tab-2" onclick="jumpToStage(2)" class="btn-tap py-2.5 px-2 rounded-xl text-xs font-bold border transition text-center">
+          2. 連音轉折
+        </button>
+        <button type="button" id="tab-3" onclick="jumpToStage(3)" class="btn-tap py-2.5 px-2 rounded-xl text-xs font-bold border transition text-center">
+          3. 語氣協商
+        </button>
+      </div>
+
+      <!-- Stage Header Card -->
+      <div class="glass-terminal rounded-2xl p-4 sm:p-5 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span id="stage-badge" class="text-xs font-bold mono text-red-400">STAGE 01 / 03</span>
+          <span id="stage-duration" class="mono text-xs px-2.5 py-0.5 rounded-md bg-slate-800 text-sky-300 border border-slate-700">~38s Audio</span>
+        </div>
+        <h2 id="stage-title" class="text-lg sm:text-xl font-black text-white">關卡 1：主旨盲聽挑戰</h2>
+        <p id="stage-problem" class="text-xs sm:text-sm text-rose-300"></p>
+      </div>
+
+      <!-- Audio Console Card -->
+      <div class="glass-terminal rounded-2xl p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <!-- Waveform + Active Speaker -->
+          <div class="flex items-center gap-3">
+            <div id="waveform" class="flex items-center gap-1 h-9 px-3 bg-slate-950 rounded-xl border border-slate-800">
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+            </div>
+            <div>
+              <div id="speaker-status" class="text-xs sm:text-sm font-bold text-slate-100">點擊播放鍵開始監聽</div>
+              <div id="stage-tip" class="text-[11px] text-slate-400">專注捕捉整體大意，切勿逐字翻譯</div>
+            </div>
+          </div>
+
+          <!-- Compact Transcript Toggle Button -->
+          <button type="button" id="btn-transcript" onclick="toggleTranscript()" class="btn-tap px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold text-amber-300 transition flex items-center gap-1.5">
+            <span>📄</span>
+            <span>逐字稿</span>
+          </button>
+        </div>
+
+        <!-- Playback Controls + 2-Preset Speed Selector (0.85x & 1.0x ONLY) -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-800">
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-play" onclick="playCurrentDialogue()" class="btn-tap flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition">
+              <span>▶ 播放音檔</span>
+            </button>
+            <button type="button" onclick="stopAudio()" class="btn-tap px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition">
+              ⏹ 停止
+            </button>
+            <button type="button" id="btn-ai-regen" onclick="regenerateDialogueWithAI()" class="btn-tap px-3 py-2.5 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-200 font-bold text-xs transition" title="Generate Fresh AI Dialogue">
+              ✨ 換新題
+            </button>
+          </div>
+
+          <!-- ONLY 0.85x and 1.0x Speed Buttons -->
+          <div class="flex items-center justify-between sm:justify-end gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 font-semibold">🎚️ 語速：</span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="speed-0.85" onclick="setPlaybackRate(0.85)" class="btn-tap speed-btn px-3 py-1.5 rounded-lg text-xs font-bold mono border border-slate-700 bg-slate-800 text-slate-300 transition">
+                0.85x 清晰
+              </button>
+              <button type="button" id="speed-1" onclick="setPlaybackRate(1.0)" class="btn-tap speed-btn px-3 py-1.5 rounded-lg text-xs font-bold mono border border-red-500 bg-red-600 text-white transition">
+                1.0x 正常
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible Transcript Drawer -->
+        <div id="transcript-box" class="hidden bg-slate-950/95 border border-amber-500/35 rounded-xl p-3.5 space-y-2 text-xs sm:text-sm leading-relaxed animate-in">
+          <div class="flex items-center justify-between text-[11px] mono text-amber-400 border-b border-slate-800 pb-1.5">
+            <span>DECRYPTED TRANSCRIPT // 對話逐字稿</span>
+            <span>點擊右上角按鈕可隨時收合</span>
+          </div>
+          <div id="transcript-content" class="space-y-2 text-slate-200 pt-1"></div>
+        </div>
+      </div>
+
+      <!-- Dynamic Interactive Task Card -->
+      <div id="task-container" class="glass-terminal rounded-2xl p-4 sm:p-6 space-y-4"></div>
+
+    </section>
+
+    <!-- SCREEN 2: VICTORY & VAULT UNLOCKED -->
+    <section id="screen-victory" class="hidden glass-terminal border-emerald-500/50 rounded-3xl p-6 sm:p-9 text-center space-y-6 animate-in">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-950 border border-emerald-500/50 text-emerald-300 text-xs font-bold mono">
+        <span>✅ ACCESS GRANTED // CODE RED CLEARED</span>
+      </div>
+
+      <div class="space-y-2">
+        <h2 class="text-2xl sm:text-4xl font-black text-white">紅色警戒解除！全數通關</h2>
+        <p class="text-slate-300 text-sm sm:text-base max-w-lg mx-auto leading-relaxed">
+          你已集齊解除密碼並成功拯救社團博覽會！完整訓練了三大核心英語聽說策略：
+        </p>
+      </div>
+
+      <div class="flex justify-center gap-3 py-1 mono text-3xl font-black">
+        <span class="w-14 h-16 flex items-center justify-center rounded-2xl bg-emerald-950 border-2 border-emerald-400 text-emerald-300 shadow-lg">7</span>
+        <span class="w-14 h-16 flex items-center justify-center rounded-2xl bg-emerald-950 border-2 border-emerald-400 text-emerald-300 shadow-lg">3</span>
+        <span class="w-14 h-16 flex items-center justify-center rounded-2xl bg-emerald-950 border-2 border-emerald-400 text-emerald-300 shadow-lg">9</span>
+      </div>
+
+      <div class="grid sm:grid-cols-3 gap-3 text-left text-xs">
+        <div class="bg-slate-950/85 border border-emerald-500/30 p-3.5 rounded-2xl">
+          <div class="text-emerald-400 font-bold mono mb-1">DIGIT 01: [ 7 ]</div>
+          <div class="font-bold text-white mb-1">主旨盲聽（Gist）</div>
+          <p class="text-slate-400">跳脫單字翻譯陷阱，快速抓出對話核心危機與行動目標。</p>
+        </div>
+        <div class="bg-slate-950/85 border border-emerald-500/30 p-3.5 rounded-2xl">
+          <div class="text-emerald-400 font-bold mono mb-1">DIGIT 02: [ 3 ]</div>
+          <div class="font-bold text-white mb-1">連音轉折（Shifts）</div>
+          <p class="text-slate-400">捕捉快語速連音中的決策反轉，並以 0.85x 跟讀強化語流節奏。</p>
+        </div>
+        <div class="bg-slate-950/85 border border-emerald-500/30 p-3.5 rounded-2xl">
+          <div class="text-emerald-400 font-bold mono mb-1">DIGIT 03: [ 9 ]</div>
+          <div class="font-bold text-white mb-1">語氣協商（Tone）</div>
+          <p class="text-slate-400">識破委婉猶豫背後的預算顧慮，提出雙贏替代方案說服財務長。</p>
+        </div>
+      </div>
+
+      <button type="button" onclick="resetWholeGame()" class="btn-tap px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg transition">
+        🔄 重新遊玩 / 挑戰新 AI 劇本
+      </button>
+    </section>
+
+  </main>
+
+  <footer class="text-center text-slate-500 text-xs py-3 px-4">
+    Code Red at the Student Center: Listen to Unlock • Mobile / Tablet / Desktop Ready
+  </footer>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. GEMINI API CONFIGURATION (RUNTIME KEY INJECTED AUTOMATICALLY WHEN EMPTY)
+     * ============================================================================
+     */
+    const apiKey = "";
+    const GEMINI_MODEL = "gemini-3-flash-preview";
+
+    async function callGeminiJSON(promptText, schemaObj = null) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      };
+      if (schemaObj) {
+        payload.generationConfig.responseSchema = schemaObj;
+      }
+
+      const delays = [1000, 2000, 4000];
+      for (let attempt = 0; attempt <= delays.length; attempt++) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          const data = await response.json();
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!rawText) throw new Error("Empty candidate");
+          return JSON.parse(rawText);
+        } catch (err) {
+          if (attempt === delays.length) return null;
+          await new Promise(r => setTimeout(r, delays[attempt]));
+        }
+      }
+      return null;
+    }
+
+    /**
+     * ============================================================================
+     * 2. WEB AUDIO API SOUND EFFECTS (ZERO EXTERNAL URLS)
+     * ============================================================================
+     */
+    let audioCtx = null;
+    let sfxEnabled = true;
+
+    function playSfx(type) {
+      if (!sfxEnabled) return;
+      try {
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (Ctx) audioCtx = new Ctx();
+        }
+        if (!audioCtx) return;
+        if (audioCtx.state === "suspended") audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === "click") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(680, now);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+          osc.start(now);
+          osc.stop(now + 0.07);
+        } else if (type === "success") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(587.33, now);
+          osc.frequency.setValueAtTime(880, now + 0.12);
+          gain.gain.setValueAtTime(0.16, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+          osc.start(now);
+          osc.stop(now + 0.38);
+        } else if (type === "error") {
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(210, now);
+          osc.frequency.linearRampToValueAtTime(155, now + 0.25);
+          gain.gain.setValueAtTime(0.16, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.28);
+        } else if (type === "unlock") {
+          const chord = [523.25, 659.25, 783.99, 1046.5];
+          chord.forEach((freq, idx) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = "triangle";
+            o.frequency.setValueAtTime(freq, now + idx * 0.11);
+            g.gain.setValueAtTime(0.15, now + idx * 0.11);
+            g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.11 + 0.5);
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.start(now + idx * 0.11);
+            o.stop(now + idx * 0.11 + 0.5);
+          });
+        }
+      } catch (e) {}
+    }
+
+    function toggleSfx() {
+      sfxEnabled = !sfxEnabled;
+      document.getElementById("sfx-toggle").textContent = sfxEnabled ? "🔊" : "🔇";
+      if (sfxEnabled) playSfx("click");
+    }
+
+    /**
+     * ============================================================================
+     * 3. SCENARIO DATA (CONCISE ~35-45s DIALOGUES)
+     * ============================================================================
+     */
+    const defaultScenarios = {
+      1: {
+        title: "關卡 1：主旨盲聽挑戰 (Main Idea & Gist)",
+        problem: "教學痛點：學生常過度執著於單字翻譯，反而漏聽整段對話的核心主旨。",
+        duration: "~38s Audio",
+        tip: "盲聽模式：預設隱藏逐字稿，專注聽出兩人正在處理什麼突發危機！",
+        unlockDigit: "7",
+        lines: [
+          { speaker: "Leo (President)", gender: "male", text: "Maya, we have a huge problem with tomorrow's Club Expo. The main auditorium's sound system just crashed, and technicians can't fix it until Friday." },
+          { speaker: "Maya (Coordinator)", gender: "female", text: "Wait, seriously? If we don't have microphones or music, our dance and drama clubs can't perform at all!" },
+          { speaker: "Leo (President)", gender: "male", text: "Exactly. That's why I'm calling an emergency meeting in ten minutes. We need to relocate the opening showcase to the outdoor courtyard before the schedule prints." },
+          { speaker: "Maya (Coordinator)", gender: "female", text: "Got it. I'll message all club leaders right now so we can reorganize the stage layout." }
+        ],
+        keywords: ["sound", "auditorium", "move", "relocate", "courtyard", "club", "expo", "meeting", "problem", "broken", "microphone", "stage", "showcase"],
+        sampleGist: "The auditorium sound system broke, so they are holding an emergency meeting to move the club showcase to the outdoor courtyard."
+      },
+      2: {
+        title: "關卡 2：語流連音與決策轉折 (Connected Speech & Shifts)",
+        problem: "教學痛點：講者使用快語速連音（gonna, actually, instead）臨時改變主意時，學生容易漏聽最新決定。",
+        duration: "~40s Audio",
+        tip: "注意連音關鍵字，聽出他們推翻了哪項原定計畫、原因為何！",
+        unlockDigit: "3",
+        lines: [
+          { speaker: "Maya (Coordinator)", gender: "female", text: "Okay, I just checked the courtyard, and honestly, it's gonna rain around noon tomorrow. So moving the showcase outside is totally out." },
+          { speaker: "Leo (President)", gender: "male", text: "Ugh, you're kidding! What are we supposed to do now? Wait—what about the second-floor cafeteria?" },
+          { speaker: "Maya (Coordinator)", gender: "female", text: "Actually, I already asked the manager. We're gonna split the event into two smaller sessions in Room 204 instead, since it already has built-in speakers." },
+          { speaker: "Leo (President)", gender: "male", text: "Smart move! Let's scrap the courtyard flyers and update the QR code immediately." }
+        ],
+        shadowSentence: "We're gonna split the event into two smaller sessions in Room 204 instead, since it already has built-in speakers.",
+        shiftKeywords: ["rain", "weather", "cafeteria", "room 204", "204", "split", "two", "indoor", "inside", "courtyard", "speaker", "cancel"],
+        sampleShift: "They canceled the outdoor courtyard plan because of rain and decided to split the event into two sessions in Room 204, which has built-in speakers."
+      },
+      3: {
+        title: "關卡 3：語氣推論與預算協商 (Vocal Tone & Role-Play)",
+        problem: "教學痛點：學生聽得懂字面意思，卻聽不出講者的猶豫語氣與委婉拒絕（Polite Hesitation）。",
+        duration: "~38s Audio",
+        tip: "注意財務長 Sam 的語氣停頓，聽出她客氣背後的真實預算顧慮！",
+        unlockDigit: "9",
+        lines: [
+          { speaker: "Leo (President)", gender: "male", text: "Hey Sam, since we're running two sessions in Room 204, we'll need extra catering boxes and custom banners for both groups. Can you approve that?" },
+          { speaker: "Sam (Treasurer)", gender: "female", rateMod: 0.9, pitchMod: 0.92, text: "Well... I mean, it sounds like a great idea in theory, and I really appreciate all your hard work... it's just that our emergency fund is already stretched pretty thin." },
+          { speaker: "Leo (President)", gender: "male", text: "Oh, so you're saying we can't afford both?" },
+          { speaker: "Sam (Treasurer)", gender: "female", rateMod: 0.9, pitchMod: 0.92, text: "I'd love to say yes, honestly, but if we spend it all on food and banners now, we won't have anything left for next month's workshop." }
+        ],
+        toneQuestion: "從財務長 Sam 的語氣（\"Well... I mean... it's just that...\"）可以推論出她的真實態度是什麼？",
+        toneOptions: [
+          { id: "A", text: "她非常興奮，已經準備好全額撥款購買餐點與布條。", correct: false },
+          { id: "B", text: "她表面客氣肯定，但實際上因預算吃緊而委婉拒絕額外開銷。", correct: true },
+          { id: "C", text: "她認為 Room 204 場地太小，建議直接取消整場社團博覽會。", correct: false }
+        ]
+      }
+    };
+
+    let scenarios = JSON.parse(JSON.stringify(defaultScenarios));
+
+    /**
+     * ============================================================================
+     * 4. GAME STATE & SPEECH ENGINE (0.85x & 1.0x ONLY)
+     * ============================================================================
+     */
+    let currentStage = 1;
+    let playbackRate = 1.0; // Strictly 0.85 or 1.0
+    let isPlaying = false;
+    let playbackToken = 0;
+    let currentLineIndex = 0;
+    let transcriptVisible = false;
+    let unlockedDigits = [null, null, null];
+    let stage2Step = 1;
+    let stage3Step = 1;
+    let rolePlayHistory = [
+      { sender: "Sam (Treasurer)", text: "I'd love to support both sessions, I'm just worried our emergency fund can't cover both extra catering and printed banners. How can we cut costs?" }
+    ];
+
+    function setPlaybackRate(rate) {
+      playSfx("click");
+      playbackRate = rate;
+
+      document.querySelectorAll(".speed-btn").forEach(btn => {
+        btn.classList.remove("border-red-500", "bg-red-600", "text-white");
+        btn.classList.add("border-slate-700", "bg-slate-800", "text-slate-300");
+      });
+
+      const activeBtn = document.getElementById(`speed-${rate}`);
+      if (activeBtn) {
+        activeBtn.classList.remove("border-slate-700", "bg-slate-800", "text-slate-300");
+        activeBtn.classList.add("border-red-500", "bg-red-600", "text-white");
+      }
+
+      // If currently playing, immediately resume from current line at the new speed
+      if (isPlaying) {
+        const resumeFrom = currentLineIndex;
+        stopAudio();
+        setTimeout(() => playCurrentDialogue(resumeFrom), 90);
+      }
+    }
+
+    function stopAudio() {
+      playbackToken++;
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      isPlaying = false;
+      const wave = document.getElementById("waveform");
+      if (wave) wave.classList.remove("playing");
+      const statusEl = document.getElementById("speaker-status");
+      if (statusEl && statusEl.textContent.startsWith("🎙️")) {
+        statusEl.textContent = "播放已暫停 / 停止";
+      }
+    }
+
+    function speakSingleLine(text, gender = "male", customRate = null, customPitch = null) {
+      return new Promise((resolve) => {
+        if (!("speechSynthesis" in window)) {
+          setTimeout(resolve, 1400);
+          return;
+        }
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = "en-US";
+        const voices = window.speechSynthesis.getVoices();
+        const enVoices = voices.filter(v => v.lang.startsWith("en"));
+        if (enVoices.length > 0) {
+          const matched = enVoices.find(v =>
+            gender === "female"
+              ? /female|samantha|victoria|zira|karen|google us english/i.test(v.name)
+              : /male|daniel|alex|david|mark|google uk english male/i.test(v.name)
+          );
+          utter.voice = matched || enVoices[0];
+        }
+        utter.rate = customRate || playbackRate;
+        utter.pitch = customPitch || (gender === "female" ? 1.12 : 0.94);
+        utter.onend = () => resolve();
+        utter.onerror = () => resolve();
+        window.speechSynthesis.speak(utter);
+      });
+    }
+
+    async function playCurrentDialogue(startIdx = 0) {
+      playSfx("click");
+      stopAudio();
+      await new Promise(r => setTimeout(r, 60));
+
+      const myToken = ++playbackToken;
+      isPlaying = true;
+      const wave = document.getElementById("waveform");
+      const statusEl = document.getElementById("speaker-status");
+      wave.classList.add("playing");
+
+      const lines = scenarios[currentStage].lines;
+      for (let i = startIdx; i < lines.length; i++) {
+        if (myToken !== playbackToken) return;
+        currentLineIndex = i;
+        const line = lines[i];
+        statusEl.textContent = `🎙️ 正在發話：${line.speaker} (${playbackRate}x)`;
+        const effectiveRate = line.rateMod ? +(playbackRate * line.rateMod).toFixed(2) : playbackRate;
+        await speakSingleLine(line.text, line.gender, effectiveRate, line.pitchMod || null);
+        if (myToken !== playbackToken) return;
+        await new Promise(r => setTimeout(r, 220));
+      }
+
+      if (myToken === playbackToken) {
+        isPlaying = false;
+        currentLineIndex = 0;
+        wave.classList.remove("playing");
+        statusEl.textContent = "✅ 音檔播放完畢，請完成下方挑戰任務";
+      }
+    }
+
+    function playShadowSentence() {
+      playSfx("click");
+      stopAudio();
+      const target = scenarios[2].shadowSentence;
+      const wave = document.getElementById("waveform");
+      const statusEl = document.getElementById("speaker-status");
+      wave.classList.add("playing");
+      statusEl.textContent = "🐢 0.85x 連音慢速示範中...";
+      speakSingleLine(target, "female", 0.85, 1.05).then(() => {
+        wave.classList.remove("playing");
+        statusEl.textContent = "請點擊麥克風跟讀或輸入句子";
+      });
+    }
+
+    function toggleTranscript() {
+      playSfx("click");
+      transcriptVisible = !transcriptVisible;
+      const box = document.getElementById("transcript-box");
+      const btn = document.getElementById("btn-transcript");
+      if (transcriptVisible) {
+        box.classList.remove("hidden");
+        btn.innerHTML = "<span>🙈</span><span>隱藏逐字稿</span>";
+      } else {
+        box.classList.add("hidden");
+        btn.innerHTML = "<span>📄</span><span>逐字稿</span>";
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 5. VOICE RECOGNITION (WITH KEYBOARD FALLBACK)
+     * ============================================================================
+     */
+    function startVoiceInput(targetInputId, btnElement) {
+      playSfx("click");
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        showInlineToast("此裝置不支援即時語音辨識，請直接在輸入框打字作答！", "amber");
+        document.getElementById(targetInputId)?.focus();
+        return;
+      }
+
+      const recognition = new SpeechRec();
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+
+      btnElement.classList.add("mic-active", "bg-red-600", "border-red-300");
+      const originalHtml = btnElement.innerHTML;
+      btnElement.innerHTML = "🎙️ 聆聽中...請說英文";
+
+      recognition.onresult = (event) => {
+        const spokenText = event.results[0][0].transcript;
+        const inputEl = document.getElementById(targetInputId);
+        if (inputEl) inputEl.value = spokenText;
+        playSfx("success");
+      };
+
+      recognition.onerror = () => {
+        showInlineToast("未偵測到語音，可再試一次或直接以鍵盤輸入作答。", "amber");
+      };
+
+      recognition.onend = () => {
+        btnElement.classList.remove("mic-active", "bg-red-600", "border-red-300");
+        btnElement.innerHTML = originalHtml;
+      };
+
+      recognition.start();
+    }
+
+    function showInlineToast(msg, color = "sky") {
+      const existing = document.getElementById("inline-toast");
+      if (existing) existing.remove();
+      const colors = {
+        sky: "bg-sky-900/95 border-sky-400 text-sky-100",
+        amber: "bg-amber-900/95 border-amber-400 text-amber-100",
+        emerald: "bg-emerald-900/95 border-emerald-400 text-emerald-100",
+        red: "bg-red-900/95 border-red-400 text-red-100"
+      };
+      const div = document.createElement("div");
+      div.id = "inline-toast";
+      div.className = `fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-2xl border shadow-2xl text-xs sm:text-sm font-bold max-w-[92vw] text-center animate-in ${colors[color] || colors.sky}`;
+      div.textContent = msg;
+      document.body.appendChild(div);
+      setTimeout(() => div.remove(), 3000);
+    }
+
+    /**
+     * ============================================================================
+     * 6. STAGE NAVIGATION & AI DIALOGUE EXTENSION
+     * ============================================================================
+     */
+    function updateStepperTabs() {
+      for (let i = 1; i <= 3; i++) {
+        const tab = document.getElementById(`tab-${i}`);
+        const isDone = unlockedDigits[i - 1] !== null;
+        const isActive = currentStage === i;
+        if (isActive) {
+          tab.className = "btn-tap py-2.5 px-2 rounded-xl text-xs font-extrabold border border-red-400 bg-red-500/20 text-white shadow text-center";
+        } else if (isDone) {
+          tab.className = "btn-tap py-2.5 px-2 rounded-xl text-xs font-bold border border-emerald-500/50 bg-emerald-950/50 text-emerald-300 text-center";
+        } else {
+          tab.className = "btn-tap py-2.5 px-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-900/80 text-slate-400 text-center";
+        }
+        const labels = ["1. 主旨盲聽", "2. 連音轉折", "3. 語氣協商"];
+        tab.textContent = (isDone ? "✓ " : "") + labels[i - 1];
+      }
+    }
+
+    function jumpToStage(stageNum) {
+      playSfx("click");
+      startStage(stageNum);
+    }
+
+    function startStage(stageNum) {
+      stopAudio();
+      currentStage = stageNum;
+      currentLineIndex = 0;
+      transcriptVisible = false;
+
+      document.getElementById("screen-intro").classList.add("hidden");
+      document.getElementById("screen-victory").classList.add("hidden");
+      document.getElementById("screen-stage").classList.remove("hidden");
+
+      document.getElementById("transcript-box").classList.add("hidden");
+      document.getElementById("btn-transcript").innerHTML = "<span>📄</span><span>逐字稿</span>";
+
+      const data = scenarios[stageNum];
+      document.getElementById("stage-badge").textContent = `STAGE 0${stageNum} / 03`;
+      document.getElementById("stage-title").textContent = data.title;
+      document.getElementById("stage-problem").textContent = data.problem;
+      document.getElementById("stage-duration").textContent = data.duration;
+      document.getElementById("stage-tip").textContent = data.tip;
+      document.getElementById("speaker-status").textContent = "點擊「▶ 播放音檔」開始監聽";
+
+      renderTranscriptBox();
+      updateStepperTabs();
+      renderStageTask();
+
+      // Auto-play on user gesture when entering stage
+      setTimeout(() => playCurrentDialogue(0), 250);
+    }
+
+    function renderTranscriptBox() {
+      const data = scenarios[currentStage];
+      const tContent = document.getElementById("transcript-content");
+      tContent.innerHTML = data.lines.map(l => `
+        <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+          <span class="font-bold text-red-400">${l.speaker}:</span>
+          <span class="text-slate-200">${l.text}</span>
+        </div>
+      `).join("");
+    }
+
+    async function regenerateDialogueWithAI() {
+      playSfx("click");
+      stopAudio();
+      const btn = document.getElementById("btn-ai-regen");
+      btn.disabled = true;
+      btn.textContent = "⏳ 生成中...";
+
+      const prompts = {
+        1: `Create a concise 85-100 word (~38 seconds) 4-line campus club event emergency dialogue between Leo (President, male) and Maya (Coordinator, female) about an unexpected venue/equipment crisis. Return JSON with lines (speaker, gender, text) and sampleGist.`,
+        2: `Create a concise 85-100 word (~38 seconds) 4-line dialogue between Maya (female) and Leo (male) revising their club event plan due to a sudden weather or room conflict using natural connected speech ("gonna", "actually", "instead"). Return JSON with lines (speaker, gender, text), shadowSentence (one key pivot sentence), and sampleShift.`,
+        3: `Create a concise 85-100 word (~38 seconds) 4-line dialogue where Leo (male) asks Sam (Treasurer, female) for extra event funds, and Sam uses polite hesitation ("Well...", "I mean...", "it's just that...") because the club budget is almost empty. Return JSON with lines (speaker, gender, text).`
+      };
+
+      const schema = {
+        type: "OBJECT",
+        properties: {
+          lines: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                speaker: { type: "STRING" },
+                gender: { type: "STRING" },
+                text: { type: "STRING" }
+              },
+              required: ["speaker", "gender", "text"]
+            }
+          },
+          shadowSentence: { type: "STRING" },
+          sampleGist: { type: "STRING" },
+          sampleShift: { type: "STRING" }
+        },
+        required: ["lines"]
+      };
+
+      const res = await callGeminiJSON(prompts[currentStage], schema);
+      btn.disabled = false;
+      btn.textContent = "✨ 換新題";
+
+      if (res && Array.isArray(res.lines) && res.lines.length >= 3) {
+        scenarios[currentStage].lines = res.lines.map(l => ({
+          ...l,
+          rateMod: l.speaker.includes("Sam") ? 0.9 : 1.0,
+          pitchMod: l.speaker.includes("Sam") ? 0.92 : null
+        }));
+        if (res.shadowSentence) scenarios[currentStage].shadowSentence = res.shadowSentence;
+        if (res.sampleGist) scenarios[currentStage].sampleGist = res.sampleGist;
+        if (res.sampleShift) scenarios[currentStage].sampleShift = res.sampleShift;
+
+        renderTranscriptBox();
+        renderStageTask();
+        showInlineToast("✨ Gemini 已生成全新情境對話！", "emerald");
+        playCurrentDialogue(0);
+      } else {
+        showInlineToast("已保留目前精選劇本，點擊播放即可練習！", "sky");
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 7. STAGE TASK RENDERING & EVALUATION
+     * ============================================================================
+     */
+    function renderStageTask() {
+      const container = document.getElementById("task-container");
+
+      if (currentStage === 1) {
+        container.innerHTML = `
+          <div class="space-y-3.5">
+            <div class="text-xs font-bold mono text-red-400">STEP 1 // SUMMARIZE & CHECK</div>
+            <h3 class="text-base sm:text-lg font-extrabold text-white">請用英文口頭（或文字）總結這段對話的核心主旨：</h3>
+            <p class="text-xs text-slate-400">提示：發生了什麼突發狀況？他們決定採取什麼行動？（不需逐字背誦，講出大意即可）</p>
+
+            <div class="flex flex-col sm:flex-row gap-2">
+              <button type="button" onclick="startVoiceInput('s1-input', this)" class="btn-tap px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-xs sm:text-sm transition shrink-0">
+                🎤 口說主旨摘要
+              </button>
+              <input id="s1-input" type="text" placeholder="e.g., The auditorium sound system broke so they are moving the event..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-red-500" />
+            </div>
+
+            <button type="button" id="btn-eval-1" onclick="evaluateStage1()" class="btn-tap w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-sm shadow-lg transition">
+              ✔ 提交主旨摘要並驗證第一位密碼
+            </button>
+            <div id="s1-feedback" class="hidden p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed"></div>
+          </div>
+        `;
+      } else if (currentStage === 2) {
+        if (stage2Step === 1) {
+          container.innerHTML = `
+            <div class="space-y-3.5">
+              <div class="text-xs font-bold mono text-amber-400">STEP 2A // SPOT SHIFTS</div>
+              <h3 class="text-base sm:text-lg font-extrabold text-white">他們推翻了原本的什麼決定？原因與新方案為何？</h3>
+              <p class="text-xs text-slate-400">提示：注意連音句中的天氣變化與新地點。</p>
+
+              <div class="flex flex-col sm:flex-row gap-2">
+                <button type="button" onclick="startVoiceInput('s2-input', this)" class="btn-tap px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-xs sm:text-sm transition shrink-0">
+                  🎤 語音回答轉折
+                </button>
+                <input id="s2-input" type="text" placeholder="e.g., Because of rain, they canceled the courtyard and moved to Room 204..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-amber-500" />
+              </div>
+
+              <button type="button" id="btn-eval-2" onclick="evaluateStage2Shift()" class="btn-tap w-full py-3.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-sm shadow-lg transition">
+                ✔ 確認決策轉折
+              </button>
+              <div id="s2-feedback" class="hidden p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed"></div>
+            </div>
+          `;
+        } else {
+          const targetSentence = scenarios[2].shadowSentence;
+          container.innerHTML = `
+            <div class="space-y-3.5 animate-in">
+              <div class="text-xs font-bold mono text-amber-400">STEP 2B // SLOW SHADOWING (0.85x 跟讀訓練)</div>
+              <h3 class="text-base sm:text-lg font-extrabold text-white">請先聽 0.85x 慢速示範連音句，再跟著朗讀一次：</h3>
+
+              <div class="p-4 rounded-xl bg-slate-950 border border-amber-500/40 text-amber-200 font-semibold text-sm sm:text-base leading-relaxed">
+                "${targetSentence}"
+              </div>
+
+              <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="playShadowSentence()" class="btn-tap px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm transition">
+                  🐢 聽 0.85x 慢速示範
+                </button>
+                <button type="button" onclick="startVoiceInput('s2-shadow-input', this)" class="btn-tap px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-xs sm:text-sm transition">
+                  🎤 開始跟讀錄音
+                </button>
+              </div>
+
+              <input id="s2-shadow-input" type="text" placeholder="語音辨識結果將顯示於此（也可手動輸入完成練習）" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-emerald-500" />
+
+              <button type="button" onclick="completeStage2()" class="btn-tap w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg transition">
+                🔓 完成跟讀，解鎖第二位密碼
+              </button>
+            </div>
+          `;
+        }
+      } else if (currentStage === 3) {
+        if (stage3Step === 1) {
+          const opts = scenarios[3].toneOptions;
+          container.innerHTML = `
+            <div class="space-y-3.5">
+              <div class="text-xs font-bold mono text-cyan-400">STEP 3A // INFER SPEAKER TONE</div>
+              <h3 class="text-base sm:text-lg font-extrabold text-white">${scenarios[3].toneQuestion}</h3>
+              <div class="space-y-2.5">
+                ${opts.map(o => `
+                  <button type="button" onclick="checkTone(${o.correct})" class="btn-tap w-full text-left p-3.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-xs sm:text-sm text-slate-200 transition">
+                    <span class="font-extrabold text-cyan-400 mr-2">${o.id}.</span>${o.text}
+                  </button>
+                `).join("")}
+              </div>
+              <div id="s3-tone-feedback" class="hidden p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed"></div>
+            </div>
+          `;
+        } else {
+          container.innerHTML = `
+            <div class="space-y-3.5 animate-in">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold mono text-cyan-400">STEP 3B // AI ROLE-PLAY NEGOTIATION</span>
+                <span class="text-xs text-slate-400">與財務長 Sam 即時協商</span>
+              </div>
+              <h3 class="text-base sm:text-lg font-extrabold text-white">提出「省錢替代方案」說服財務長 Sam 批准活動！</h3>
+
+              <!-- Chat History -->
+              <div id="roleplay-chat" class="space-y-2.5 max-h-52 overflow-y-auto p-3 rounded-xl bg-slate-950 border border-slate-800">
+                ${rolePlayHistory.map(m => `
+                  <div class="flex flex-col ${m.sender === "You" ? "items-end" : "items-start"}">
+                    <span class="text-[10px] mono text-slate-400 mb-0.5">${m.sender}</span>
+                    <div class="px-3.5 py-2 rounded-2xl text-xs sm:text-sm max-w-[88%] ${
+                      m.sender === "You"
+                        ? "bg-sky-600 text-white rounded-br-none"
+                        : "bg-slate-800 text-amber-100 border border-amber-500/30 rounded-bl-none"
+                    }">
+                      ${m.text}
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+
+              <div class="flex flex-col sm:flex-row gap-2">
+                <button type="button" onclick="startVoiceInput('s3-nego-input', this)" class="btn-tap px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-xs sm:text-sm transition shrink-0">
+                  🎤 語音協商
+                </button>
+                <input id="s3-nego-input" type="text" placeholder="e.g., What if we use digital QR codes instead of printed banners and only buy water?" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-cyan-500" />
+              </div>
+
+              <button type="button" id="btn-eval-3" onclick="evaluateNegotiation()" class="btn-tap w-full py-3.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-sm shadow-lg transition">
+                🤝 送出協商提案給財務長 Sam
+              </button>
+              <div id="s3-nego-feedback" class="hidden p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed"></div>
+            </div>
+          `;
+        }
+      }
+    }
+
+    async function evaluateStage1() {
+      const val = document.getElementById("s1-input").value.trim();
+      const fb = document.getElementById("s1-feedback");
+      const btn = document.getElementById("btn-eval-1");
+      if (!val) {
+        showInlineToast("請先口說或輸入英文主旨摘要！", "amber");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "⏳ AI 正在評估主旨摘要...";
+
+      const dialogueText = scenarios[1].lines.map(l => `${l.speaker}: ${l.text}`).join(" ");
+      const aiRes = await callGeminiJSON(
+        `Evaluate if the student caught the main gist of this dialogue: "${dialogueText}". Student summary: "${val}". Be encouraging for EFL learners. Return JSON: {"passed": boolean, "feedback": "short encouraging feedback in Traditional Chinese"}`,
+        {
+          type: "OBJECT",
+          properties: {
+            passed: { type: "BOOLEAN" },
+            feedback: { type: "STRING" }
+          },
+          required: ["passed", "feedback"]
+        }
+      );
+
+      btn.disabled = false;
+      btn.textContent = "✔ 提交主旨摘要並驗證第一位密碼";
+
+      let passed = false;
+      let comment = "";
+
+      if (aiRes && typeof aiRes.passed === "boolean") {
+        passed = aiRes.passed;
+        comment = (passed ? "✅ " : "⚠️ ") + aiRes.feedback;
+      } else {
+        const lower = val.toLowerCase();
+        const hits = scenarios[1].keywords.filter(k => lower.includes(k)).length;
+        passed = hits >= 2 || val.split(/\s+/).length >= 5;
+        comment = passed
+          ? `✅ 抓到核心主旨了！參考摘要：${scenarios[1].sampleGist}`
+          : `⚠️ 還差一點點！試著提到音響故障（sound system）或改到戶外中庭（courtyard / move）。`;
+      }
+
+      fb.classList.remove("hidden");
+      fb.className = `p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed ${
+        passed ? "bg-emerald-950/90 border border-emerald-500/50 text-emerald-200" : "bg-red-950/90 border border-red-500/50 text-red-200"
+      }`;
+      fb.textContent = comment;
+
+      if (passed) {
+        playSfx("success");
+        unlockDigit(1, scenarios[1].unlockDigit);
+        showInlineToast("🔓 第一位密碼 [ 7 ] 已解鎖！即將進入關卡 2...", "emerald");
+        setTimeout(() => startStage(2), 1800);
+      } else {
+        playSfx("error");
+      }
+    }
+
+    async function evaluateStage2Shift() {
+      const val = document.getElementById("s2-input").value.trim();
+      const fb = document.getElementById("s2-feedback");
+      const btn = document.getElementById("btn-eval-2");
+      if (!val) {
+        showInlineToast("請先說明計畫更改的內容與原因！", "amber");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "⏳ AI 正在核對決策轉折...";
+
+      const dialogueText = scenarios[2].lines.map(l => `${l.speaker}: ${l.text}`).join(" ");
+      const aiRes = await callGeminiJSON(
+        `Dialogue: "${dialogueText}". Student answer about what changed and why: "${val}". Did they catch the revised decision and reason? Return JSON: {"passed": boolean, "feedback": "short feedback in Traditional Chinese"}`,
+        {
+          type: "OBJECT",
+          properties: {
+            passed: { type: "BOOLEAN" },
+            feedback: { type: "STRING" }
+          },
+          required: ["passed", "feedback"]
+        }
+      );
+
+      btn.disabled = false;
+      btn.textContent = "✔ 確認決策轉折";
+
+      let passed = false;
+      let comment = "";
+
+      if (aiRes && typeof aiRes.passed === "boolean") {
+        passed = aiRes.passed;
+        comment = (passed ? "✅ " : "⚠️ ") + aiRes.feedback;
+      } else {
+        const lower = val.toLowerCase();
+        const hits = scenarios[2].shiftKeywords.filter(k => lower.includes(k)).length;
+        passed = hits >= 2 || val.split(/\s+/).length >= 5;
+        comment = passed
+          ? `✅ 精準捕捉到決策轉折！參考重點：${scenarios[2].sampleShift}`
+          : `⚠️ 再聽一次連音句：明天中午會下雨（rain），所以取消中庭改去有內建音響的 Room 204。`;
+      }
+
+      fb.classList.remove("hidden");
+      fb.className = `p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed ${
+        passed ? "bg-emerald-950/90 border border-emerald-500/50 text-emerald-200" : "bg-red-950/90 border border-red-500/50 text-red-200"
+      }`;
+      fb.textContent = comment;
+
+      if (passed) {
+        playSfx("success");
+        setTimeout(() => {
+          stage2Step = 2;
+          renderStageTask();
+        }, 1400);
+      } else {
+        playSfx("error");
+      }
+    }
+
+    function completeStage2() {
+      const val = document.getElementById("s2-shadow-input").value.trim();
+      if (!val) {
+        showInlineToast("請先點擊「開始跟讀錄音」或輸入跟讀句子！", "amber");
+        return;
+      }
+      playSfx("success");
+      unlockDigit(2, scenarios[2].unlockDigit);
+      showInlineToast("🔓 第二位密碼 [ 3 ] 已解鎖！即將進入最終關卡...", "emerald");
+      setTimeout(() => startStage(3), 1600);
+    }
+
+    function checkTone(isCorrect) {
+      const fb = document.getElementById("s3-tone-feedback");
+      fb.classList.remove("hidden");
+      if (isCorrect) {
+        playSfx("success");
+        fb.className = "p-3.5 rounded-xl text-xs sm:text-sm bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 leading-relaxed";
+        fb.textContent = "✅ 判讀正確！英文母語者常用 \"Well... I mean... it's just that...\" 表達委婉拒絕（Polite Hesitation）。現在請與財務長協商省錢方案！";
+        setTimeout(() => {
+          stage3Step = 2;
+          renderStageTask();
+        }, 1600);
+      } else {
+        playSfx("error");
+        fb.className = "p-3.5 rounded-xl text-xs sm:text-sm bg-red-950/90 border border-red-500/50 text-red-200 leading-relaxed";
+        fb.textContent = "⚠️ 再聽聽看 Sam 說話時的停頓與 \"stretched pretty thin（預算吃緊）\"，她其實是在委婉拒絕喔！";
+      }
+    }
+
+    async function evaluateNegotiation() {
+      const val = document.getElementById("s3-nego-input").value.trim();
+      const fb = document.getElementById("s3-nego-feedback");
+      const btn = document.getElementById("btn-eval-3");
+      if (!val) {
+        showInlineToast("請說出或輸入你的省錢協商提案！", "amber");
+        return;
+      }
+
+      rolePlayHistory.push({ sender: "You", text: val });
+      btn.disabled = true;
+      btn.textContent = "⏳ 財務長 Sam 正在思考你的提案...";
+
+      const aiRes = await callGeminiJSON(
+        `You are Sam, a polite but budget-conscious student club treasurer. The student proposes a cheaper plan: "${val}". If they suggest a practical cost-saving idea (like digital banners/QR codes, fewer snacks/water only, borrowing equipment, sharing supplies), accept enthusiastically. Return JSON: {"accepted": boolean, "samReplyEn": "1-2 natural English sentences in character", "feedbackZh": "brief encouraging note in Traditional Chinese"}`,
+        {
+          type: "OBJECT",
+          properties: {
+            accepted: { type: "BOOLEAN" },
+            samReplyEn: { type: "STRING" },
+            feedbackZh: { type: "STRING" }
+          },
+          required: ["accepted", "samReplyEn", "feedbackZh"]
+        }
+      );
+
+      btn.disabled = false;
+      btn.textContent = "🤝 送出協商提案給財務長 Sam";
+
+      let accepted = false;
+      let samReplyEn = "";
+      let feedbackZh = "";
+
+      if (aiRes && typeof aiRes.accepted === "boolean") {
+        accepted = aiRes.accepted;
+        samReplyEn = aiRes.samReplyEn;
+        feedbackZh = aiRes.feedbackZh;
+      } else {
+        const lower = val.toLowerCase();
+        const budgetWords = ["digital", "qr", "save", "cheap", "cheaper", "less", "cut", "snack", "water", "no banner", "cancel", "share", "borrow", "free", "reduce", "budget"];
+        accepted = budgetWords.some(w => lower.includes(w)) || val.split(/\s+/).length >= 5;
+        samReplyEn = accepted
+          ? "Oh, using digital QR codes and skipping the catering boxes saves half the budget! Deal—I'll approve that right now."
+          : "Hmm, I'm still worried that's a bit expensive. Could we cut the printed banners or catering boxes?";
+        feedbackZh = accepted
+          ? "協商成功！你提出了具體的省錢替代方案，財務長正式點頭批准！"
+          : "財務長仍在猶豫，試著提議減少餐點或改用數位海報（QR code）！";
+      }
+
+      rolePlayHistory.push({ sender: "Sam (Treasurer)", text: samReplyEn });
+      renderStageTask();
+
+      const updatedFb = document.getElementById("s3-nego-feedback");
+      updatedFb.classList.remove("hidden");
+      updatedFb.className = `p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed ${
+        accepted ? "bg-emerald-950/90 border border-emerald-500/50 text-emerald-200" : "bg-amber-950/90 border border-amber-500/50 text-amber-200"
+      }`;
+      updatedFb.textContent = (accepted ? "🤝 " : "💬 ") + feedbackZh;
+
+      speakSingleLine(samReplyEn, "female", playbackRate, 1.05);
+
+      if (accepted) {
+        playSfx("unlock");
+        unlockDigit(3, scenarios[3].unlockDigit);
+        setTimeout(() => {
+          document.body.classList.add("unlocked-theme");
+          document.getElementById("hud-dot").className = "w-3 h-3 rounded-full bg-emerald-400";
+          document.getElementById("hud-status").className = "text-xs sm:text-sm font-black tracking-wider text-emerald-400 uppercase";
+          document.getElementById("hud-status").textContent = "CODE RED CLEARED: ACCESS GRANTED";
+          document.getElementById("screen-stage").classList.add("hidden");
+          document.getElementById("screen-victory").classList.remove("hidden");
+        }, 3000);
+      } else {
+        playSfx("error");
+      }
+    }
+
+    function unlockDigit(slot, digit) {
+      unlockedDigits[slot - 1] = digit;
+      const el = document.getElementById(`digit-${slot}`);
+      if (el) {
+        el.textContent = digit;
+        el.className = "w-6 h-7 flex items-center justify-center rounded-lg bg-emerald-950 border border-emerald-400 text-emerald-300 font-extrabold shadow";
+      }
+      updateStepperTabs();
+    }
+
+    function resetWholeGame() {
+      playSfx("click");
+      stopAudio();
+      scenarios = JSON.parse(JSON.stringify(defaultScenarios));
+      unlockedDigits = [null, null, null];
+      stage2Step = 1;
+      stage3Step = 1;
+      rolePlayHistory = [
+        { sender: "Sam (Treasurer)", text: "I'd love to support both sessions, I'm just worried our emergency fund can't cover both extra catering and printed banners. How can we cut costs?" }
+      ];
+      document.body.classList.remove("unlocked-theme");
+      document.getElementById("hud-dot").className = "w-3 h-3 rounded-full bg-red-500 animate-ping";
+      document.getElementById("hud-status").className = "text-xs sm:text-sm font-black tracking-wider text-red-400 uppercase";
+      document.getElementById("hud-status").textContent = "CODE RED: STUDENT CENTER LOCKDOWN";
+
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById(`digit-${i}`);
+        el.textContent = "?";
+        el.className = "w-6 h-7 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-700 text-slate-500 font-extrabold";
+      }
+
+      document.getElementById("screen-victory").classList.add("hidden");
+      document.getElementById("screen-stage").classList.add("hidden");
+      document.getElementById("screen-intro").classList.remove("hidden");
+    }
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+  </script>
+</body>
+</html>
